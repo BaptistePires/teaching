@@ -1,0 +1,247 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-g",
+      "-Ixed",
+      "-Iinclude/monitor",
+      "-c",
+      "-o",
+      "obj/monitor/intercept.o",
+      "monitor/intercept.c"
+    ],
+    "directory": "/home/coefficriwan.linux/nmv-working-dir/janus",
+    "file": "/home/coefficriwan.linux/nmv-working-dir/janus/monitor/intercept.c",
+    "output": "/home/coefficriwan.linux/nmv-working-dir/janus/obj/monitor/intercept.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-g",
+      "-Ixed",
+      "-Iinclude/monitor",
+      "-c",
+      "-o",
+      "obj/monitor/memory.o",
+      "monitor/memory.c"
+    ],
+    "directory": "/home/coefficriwan.linux/nmv-working-dir/janus",
+    "file": "/home/coefficriwan.linux/nmv-working-dir/janus/monitor/memory.c",
+    "output": "/home/coefficriwan.linux/nmv-working-dir/janus/obj/monitor/memory.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-g",
+      "-Ixed",
+      "-Iinclude/monitor",
+      "-c",
+      "-o",
+      "obj/monitor/monitor.o",
+      "monitor/monitor.c"
+    ],
+    "directory": "/home/coefficriwan.linux/nmv-working-dir/janus",
+    "file": "/home/coefficriwan.linux/nmv-working-dir/janus/monitor/monitor.c",
+    "output": "/home/coefficriwan.linux/nmv-working-dir/janus/obj/monitor/monitor.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-g",
+      "-Ixed",
+      "-Iinclude/monitor",
+      "-c",
+      "-o",
+      "obj/monitor/multiboot2.o",
+      "monitor/multiboot2.c"
+    ],
+    "directory": "/home/coefficriwan.linux/nmv-working-dir/janus",
+    "file": "/home/coefficriwan.linux/nmv-working-dir/janus/monitor/multiboot2.c",
+    "output": "/home/coefficriwan.linux/nmv-working-dir/janus/obj/monitor/multiboot2.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-g",
+      "-Ixed",
+      "-Iinclude/monitor",
+      "-c",
+      "-o",
+      "obj/monitor/shadow.o",
+      "monitor/shadow.c"
+    ],
+    "directory": "/home/coefficriwan.linux/nmv-working-dir/janus",
+    "file": "/home/coefficriwan.linux/nmv-working-dir/janus/monitor/shadow.c",
+    "output": "/home/coefficriwan.linux/nmv-working-dir/janus/obj/monitor/shadow.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-g",
+      "-Ixed",
+      "-Iinclude/monitor",
+      "-c",
+      "-o",
+      "obj/monitor/state.o",
+      "monitor/state.c"
+    ],
+    "directory": "/home/coefficriwan.linux/nmv-working-dir/janus",
+    "file": "/home/coefficriwan.linux/nmv-working-dir/janus/monitor/state.c",
+    "output": "/home/coefficriwan.linux/nmv-working-dir/janus/obj/monitor/state.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-Iinclude/guest",
+      "-c",
+      "-o",
+      "obj/guest/entry.o",
+      "guest/entry.S"
+    ],
+    "directory": "/home/coefficriwan.linux/nmv-working-dir/janus",
+    "file": "/home/coefficriwan.linux/nmv-working-dir/janus/guest/entry.S",
+    "output": "/home/coefficriwan.linux/nmv-working-dir/janus/obj/guest/entry.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-fno-builtin",
+      "-fno-stack-protector",
+      "-Wno-implicit-fallthrough",
+      "-mno-sse",
+      "-mno-mmx",
+      "-Iinclude/guest",
+      "-c",
+      "-o",
+      "obj/guest/idt.o",
+      "guest/idt.c"
+    ],
+    "directory": "/home/coefficriwan.linux/nmv-working-dir/janus",
+    "file": "/home/coefficriwan.linux/nmv-working-dir/janus/guest/idt.c",
+    "output": "/home/coefficriwan.linux/nmv-working-dir/janus/obj/guest/idt.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-fno-builtin",
+      "-fno-stack-protector",
+      "-Wno-implicit-fallthrough",
+      "-mno-sse",
+      "-mno-mmx",
+      "-Iinclude/guest",
+      "-c",
+      "-o",
+      "obj/guest/main.o",
+      "guest/main.c"
+    ],
+    "directory": "/home/coefficriwan.linux/nmv-working-dir/janus",
+    "file": "/home/coefficriwan.linux/nmv-working-dir/janus/guest/main.c",
+    "output": "/home/coefficriwan.linux/nmv-working-dir/janus/obj/guest/main.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-fno-builtin",
+      "-fno-stack-protector",
+      "-Wno-implicit-fallthrough",
+      "-mno-sse",
+      "-mno-mmx",
+      "-Iinclude/guest",
+      "-c",
+      "-o",
+      "obj/guest/memory.o",
+      "guest/memory.c"
+    ],
+    "directory": "/home/coefficriwan.linux/nmv-working-dir/janus",
+    "file": "/home/coefficriwan.linux/nmv-working-dir/janus/guest/memory.c",
+    "output": "/home/coefficriwan.linux/nmv-working-dir/janus/obj/guest/memory.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-fno-builtin",
+      "-fno-stack-protector",
+      "-Wno-implicit-fallthrough",
+      "-mno-sse",
+      "-mno-mmx",
+      "-Iinclude/guest",
+      "-c",
+      "-o",
+      "obj/guest/printk.o",
+      "guest/printk.c"
+    ],
+    "directory": "/home/coefficriwan.linux/nmv-working-dir/janus",
+    "file": "/home/coefficriwan.linux/nmv-working-dir/janus/guest/printk.c",
+    "output": "/home/coefficriwan.linux/nmv-working-dir/janus/obj/guest/printk.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-Iinclude/guest",
+      "-c",
+      "-o",
+      "obj/guest/trap.o",
+      "obj/guest/trap.S"
+    ],
+    "directory": "/home/coefficriwan.linux/nmv-working-dir/janus",
+    "file": "/home/coefficriwan.linux/nmv-working-dir/janus/obj/guest/trap.S",
+    "output": "/home/coefficriwan.linux/nmv-working-dir/janus/obj/guest/trap.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-fno-builtin",
+      "-fno-stack-protector",
+      "-Wno-implicit-fallthrough",
+      "-mno-sse",
+      "-mno-mmx",
+      "-Iinclude/guest",
+      "-c",
+      "-o",
+      "obj/guest/vga.o",
+      "guest/vga.c"
+    ],
+    "directory": "/home/coefficriwan.linux/nmv-working-dir/janus",
+    "file": "/home/coefficriwan.linux/nmv-working-dir/janus/guest/vga.c",
+    "output": "/home/coefficriwan.linux/nmv-working-dir/janus/obj/guest/vga.o"
+  }
+]
