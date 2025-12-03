@@ -1,3 +1,4 @@
+#include "task.h"
 #include "types.h"
 #include <memory.h>
 #include <printk.h>
@@ -60,6 +61,10 @@ void free_page(paddr_t addr)
 	bitset[i] &= ~v;
 }
 
+
+
+#define USER_STACK_START 0x2000000000
+#define USER_STACK_END 0x40000000
 /*
  * Memory model for Rackdoll OS
  *
@@ -68,22 +73,22 @@ void free_page(paddr_t addr)
  * | (unused)             |
  * +----------------------+ 0xffff800000000000
  * | (impossible address) |
- * +----------------------+ 0x00007fffffffffff
+ * +----------------------+ 0x00007fffffffffff 128 TiB
  * | User                 |
  * | (text + data + heap) |
- * +----------------------+ 0x2000000000
+ * +----------------------+ 0x2000000000 128 GiB
  * | User                 |
- * | (stack)              |
- * +----------------------+ 0x40000000
+ * | (stack)              | 0x1ffffffff8
+ * +----------------------+ 0x40000000 1GiB
  * | Kernel               |
  * | (valloc)             |
- * +----------------------+ 0x201000
+ * +----------------------+ 0x201000  ~ +2 MiB
  * | Kernel               |
  * | (APIC)               |
- * +----------------------+ 0x200000
+ * +----------------------+ 0x200000 2 MiB
  * | Kernel               |
  * | (text + data)        |
- * +----------------------+ 0x100000
+ * +----------------------+ 0x100000  1 MiB
  * | Kernel               |
  * | (BIOS + VGA)         |
  * +----------------------+ 0x0
@@ -135,8 +140,6 @@ void print_pgt(paddr_t pml, uint8_t level)
 }
 
 /*
-	Reecrire en prenant en compte le dernier lvl, pas propre atm, le cas ou
-	l'@ est deja mappee est pas pris en compte
 */
 void map_page(struct task *ctx, vaddr_t vaddr, paddr_t paddr)
 {
@@ -145,7 +148,7 @@ void map_page(struct task *ctx, vaddr_t vaddr, paddr_t paddr)
 	paddr_t current_index;
 
 	/* Pour tous les lvl intermediaires */
-	for(uint8_t level = 4; level > 0; level--) {
+	for(uint8_t level = 4; level > 1; level--) {
 		/* Calcul de l'index pour la pml courrante */
 		current_index = PTE_GET_INDEX_FOR_LVL(vaddr, level);
 
@@ -155,7 +158,7 @@ void map_page(struct task *ctx, vaddr_t vaddr, paddr_t paddr)
 		 * - Soit on est en pml1 : on mappe la page physique demandee
 		*/
 		if (!PTE_IS_VALID(pgt_addr[current_index])) {
-			paddr_t new_page = level == 1 ? paddr : alloc_page();
+			paddr_t new_page = alloc_page();
 			memset((void *)new_page, 0, PAGE_SIZE);
 			pgt_addr[current_index] = new_page | PTE_FLAG_VALID | PTE_FLAG_USER | PTE_FLAG_RW;
 		}
@@ -163,29 +166,113 @@ void map_page(struct task *ctx, vaddr_t vaddr, paddr_t paddr)
 		/* On descend d'un niveau : risque de segfault ou pas ?*/
 		pgt_addr = (paddr_t *)PTE_NEXT_ADDR(pgt_addr[current_index]);	
 	}
+
+	current_index = PTE_GET_INDEX_PML1(vaddr);
+	if (!PTE_IS_VALID(pgt_addr[current_index])) {
+		pgt_addr[current_index] = paddr | PTE_FLAG_VALID | PTE_FLAG_USER | PTE_FLAG_RW;
+	} else {
+		printk("[warning] map_page: vaddr %p is already mapped\n", vaddr);
+		asm volatile ("hlt");
+	}
 }
 
 void load_task(struct task *ctx)
 {
+	/* On se trouve dans une nouvelle tache, il faut allouer pgt */
+	paddr_t new_pml4 = alloc_page();
+	memset((void *)new_pml4, 0, PAGE_SIZE);
+	ctx->pgt = new_pml4;
+
+	/* Pour mapper noyau, on a besoin de creer pml3
+	 * car on a juste de copier pml3[0] du parent
+	 * TODO check user
+	*/
+	paddr_t pml3 = alloc_page();
+	memset((void *)pml3, 0, PAGE_SIZE);
+	((paddr_t *)new_pml4)[0] = (paddr_t)pml3 | PTE_FLAG_VALID | PTE_FLAG_USER | PTE_FLAG_RW;
+
+	/* A partir de la, on a new_pml4[0] -> new_pml3[0], 
+	 * on peut copier la pml2 du kernel.
+	*/
+	/* On recupere la pgt du processus courrant */
+	paddr_t *kernel_pml4 = (paddr_t *)store_cr3();
+	paddr_t *kernel_pml3 = (paddr_t *)PTE_NEXT_ADDR(kernel_pml4[0]);
+	((paddr_t *)pml3)[0] = kernel_pml3[0];
+
+	/* La partie setup pgt est terminee, il faut maintenant
+	 * allouer.
+	*/
+
+	/* On itere sur toutes la partie load_end_paddr - load_paddr */
+	vaddr_t vaddr = ctx->load_vaddr;
+	paddr_t paddr = ctx->load_paddr;
+
+	for(; paddr < ctx->load_end_paddr; paddr+=PAGE_SIZE) {
+		map_page(ctx, vaddr, paddr);
+		vaddr+=PAGE_SIZE;
+	}
+
+
+	printk("before bss alloc\n");
+	/* A ce moment, vaddr = bss_start */
+	for(; vaddr < ctx->bss_end_vaddr; vaddr+=PAGE_SIZE) {
+		paddr_t new_page = alloc_page();
+		memset((void *)new_page, 0, PAGE_SIZE);
+		map_page(ctx, vaddr, new_page);
+	}
+	
+
+	printk("!!Task loaded: load_vaddr=%p, load_end_vaddr=%p, bss_end_vaddr=%p\n",
+		ctx->load_vaddr, vaddr,  ctx->bss_end_vaddr);
 }
 
 void set_task(struct task *ctx)
 {
+	load_cr3(ctx->pgt);
 }
 
 void mmap(struct task *ctx, vaddr_t vaddr)
 {
+	paddr_t new_page = alloc_page();
+	memset((void *)new_page, 0, PAGE_SIZE);
+	map_page(ctx, vaddr, new_page);
 }
 
 void munmap(struct task *ctx, vaddr_t vaddr)
 {
+	paddr_t *pgt = (paddr_t *)ctx->pgt;
+
+	/* On va jusqu'a PML1 */
+	for (uint8_t level = 4; level > 1; level--) {
+		uint16_t index = PTE_GET_INDEX_FOR_LVL(vaddr, level);
+		if (!PTE_IS_VALID(pgt[index])) {
+			printk("[warning] munmap: vaddr %p is not mapped\n", vaddr);
+			return;
+		}
+		pgt = (paddr_t *)PTE_NEXT_ADDR(pgt[index]);
+	}
+
+	// On est arrive a PML1
+	uint16_t index = PTE_GET_INDEX_PML1(vaddr);
+	if (!PTE_IS_VALID(pgt[index])) {
+		printk("[warning] munmap: vaddr %p is not mapped\n", vaddr);
+		return;
+	}
+	free_page(PTE_NEXT_ADDR(pgt[index]));
+	pgt[index] = 0;
+	invlpg(vaddr);
 }
 
 void pgfault(struct interrupt_context *ctx)
 {
-	printk("Page fault at %p\n", ctx->rip);
-	printk("  cr2 = %p\n", store_cr2());
-	asm volatile("hlt");
+	paddr_t faulty_addr = store_cr2();
+	
+	/* Seules les fautes de page dans la pile sont valides.*/
+	if (faulty_addr > USER_STACK_START || faulty_addr < USER_STACK_END) {
+		exit_task(ctx);
+		return;
+	}
+	mmap(current(), faulty_addr);
 }
 
 void duplicate_task(struct task *ctx)

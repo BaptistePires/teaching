@@ -191,10 +191,13 @@ void load_tasks(const void *mb2)
 	ptr += (sizeof (*info) + 7) & ~0x7;
 	while (ptr < end) {
 		tag = (const struct mb2_tag *) ptr;
+		printk("tag type=%u size=%u\n", tag->type, tag->size);
 		if (tag->type == MB2_TAG_MODULE)
 			parse_task(((const struct mb2_tag_module *) tag));
 		ptr = (ptr + tag->size + 7) & ~0x7;
+		printk("ptr=%p end=%p\n", (void *)ptr, (void *)end);
 	}
+
 
 	interrupt_vector[INT_USER_SYSCALL] = syscall_handler;
 	interrupt_vector[INT_USER_ENTER_TASKS] = enter_handler;

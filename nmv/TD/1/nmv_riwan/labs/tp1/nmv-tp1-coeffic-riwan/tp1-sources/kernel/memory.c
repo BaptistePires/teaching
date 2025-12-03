@@ -8,6 +8,46 @@
 #define PHYSICAL_POOL_BYTES (PHYSICAL_POOL_PAGES << 12)
 #define BITSET_SIZE (PHYSICAL_POOL_PAGES >> 6)
 
+
+
+#define PTE_FLAG_VALID      	0x1
+#define PTE_FLAG_RW           	0x2
+#define PTE_FLAG_USER      	0x4
+#define PTE_FLAG_CACHED 	0x8
+#define PTE_FLAG_RAM    	0x10
+#define PTE_FLAG_ACCESSED      	0x20
+#define PTE_FLAG_DIRTY  	0x40
+#define PTE_FLAG_HUGE   	0x80
+#define PTE_FLAG_GLOBAL 	0x100 // pas sur de ca
+#define PTE_FLAG_NO_EXECUTE    	0x200
+
+// pte flags masks
+#define PTE_IS_VALID(p)    	((p) & PTE_FLAG_VALID)
+#define PTE_IS_RW(p)      	((p) & PTE_FLAG_RW)
+#define PTE_IS_USER(p)   	((p) & PTE_FLAG_USER)
+#define PTE_IS_CACHED(p)	((p) & PTE_FLAG_CACHED)
+#define PTE_IS_RAM(p)		((p) & PTE_FLAG_RAM)
+#define PTE_IS_ACCESSED(p)	((p) & PTE_FLAG_ACCESSED)
+#define PTE_IS_DIRTY(p)		((p) & PTE_FLAG_DIRTY)
+#define PTE_IS_HUGE(p)		((p) & PTE_FLAG_HUGE)
+#define PTE_IS_GLOBAL(p)	((p) & PTE_FLAG_GLOBAL) // pas sur de ca
+#define PTE_IS_NO_EXECUTE(p)	((p) & PTE_FLAG_NO_EXECUTE)
+
+// pte addr makss
+#define _PTE_ADDR_MASK		0xffffffff000
+#define PTE_NEXT_ADDR(p)	((p) & _PTE_ADDR_MASK)
+
+#define _PTE_MASK_PML1 0x1ff000
+#define _PTE_MASK_PML2 0x3fe00000
+#define _PTE_MASK_PML3 0x7fc0000000
+#define _PTE_MASK_PML4 0xff8000000000
+
+#define PTE_GET_INDEX_PML1(v) (((v) & _PTE_MASK_PML1) >> 12)
+#define PTE_GET_INDEX_PML2(v) (((v) & _PTE_MASK_PML2) >> 21)
+#define PTE_GET_INDEX_PML3(v) (((v) & _PTE_MASK_PML3) >> 30)
+#define PTE_GET_INDEX_PML4(v) (((v) & _PTE_MASK_PML4) >> 39)
+#define PTE_GET_INDEX_FOR_LVL(v, lvl) ((v) >> (12 + (9 * ((lvl) - 1))) & 0x1ff)
+
 extern __attribute__((noreturn)) void die(void);
 
 static uint64_t bitset[BITSET_SIZE];
@@ -96,8 +136,8 @@ void map_page(struct task *ctx, vaddr_t vaddr, paddr_t paddr) {
       PAGE_INDEX_PML4(vaddr),
   };
 
-  printk("indexes of vaddr %p: %d, %d, %d, %d\n", vaddr, i_pml[3], i_pml[2],
-         i_pml[1], i_pml[0]);
+  // printk("indexes of vaddr %p: %d, %d, %d, %d\n", vaddr, i_pml[3], i_pml[2],
+        //  i_pml[1], i_pml[0]);
   paddr_t entry_index;
 
   // printk("> map_page: cr3: %p, vaddr: %p, paddr: %p,\n", page_table, vaddr,
@@ -107,17 +147,15 @@ void map_page(struct task *ctx, vaddr_t vaddr, paddr_t paddr) {
 
   for (int lvl = 3; lvl > 0; lvl--) {
     entry_index = i_pml[lvl];
-    printk("level=%d, entry_index=%d\n", lvl, entry_index);
+    // printk("level=%d, entry_index=%d\n", lvl, entry_index);
     if (!PAGE_IS_VALID(page_table[entry_index])) {
-      printk("new page allocation for pml%d\n", lvl);
+      // printk("new page allocation for pml%d\n", lvl);
       paddr_t page = alloc_page();
       memset((void *)page, 0, PAGE_SIZE);
       page_table[entry_index] =
           page | PAGE_FLAG_USER | PAGE_FLAG_WRITE | PAGE_FLAG_VALID;
       // printk("  alloc of pml%d, in index %d of pml%d with address %p\n", lvl,
       //        entry_index, lvl + 1, page);
-    } else {
-      printk("existing page for pml%d\n", lvl);
     }
     page_table = (paddr_t *)PAGE_ADDRESS(page_table[entry_index]);
   }
@@ -132,48 +170,98 @@ void map_page(struct task *ctx, vaddr_t vaddr, paddr_t paddr) {
   }
 }
 
-void load_task(struct task *ctx) {
-  // printk("> load_task: pgt: %p, load_vaddr: %p, bss_end_vaddr: %p\n",
-  // ctx->pgt,
-  //        ctx->load_vaddr, ctx->bss_end_vaddr);
-  // printk("  load_paddr: %p, load_end_paddr: %p\n", ctx->load_paddr,
-  //        ctx->load_end_paddr);
+void load_task(struct task *ctx)
+{
+	/* On se trouve dans une nouvelle tache, il faut allouer pgt */
+	paddr_t new_pml4 = alloc_page();
+	memset((void *)new_pml4, 0, PAGE_SIZE);
+	ctx->pgt = new_pml4;
 
-  // allocate process' page table
-  paddr_t pml4_page = alloc_page();
-  memset((void *)pml4_page, 0, PAGE_SIZE);
-  ctx->pgt = pml4_page;
-  // printk("  alloc pml4, pgt: %p\n", ctx->pgt);
+	/* Pour mapper noyau, on a besoin de creer pml3
+	 * car on a juste de copier pml3[0] du parent
+	 * TODO check user
+	*/
+	paddr_t pml3 = alloc_page();
+	memset((void *)pml3, 0, PAGE_SIZE);
+	((paddr_t *)new_pml4)[0] = (paddr_t)pml3 | PTE_FLAG_VALID | PTE_FLAG_USER | PTE_FLAG_RW;
 
-  // allocate process' pml3
-  paddr_t pml3_page = alloc_page();
-  memset((void *)pml3_page, 0, PAGE_SIZE);
-  ((paddr_t *)pml4_page)[0] =
-      pml3_page | PAGE_FLAG_USER | PAGE_FLAG_WRITE | PAGE_FLAG_VALID;
+	/* A partir de la, on a new_pml4[0] -> new_pml3[0], 
+	 * on peut copier la pml2 du kernel.
+	*/
+	/* On recupere la pgt du processus courrant */
+	paddr_t *kernel_pml4 = (paddr_t *)store_cr3();
+	paddr_t *kernel_pml3 = (paddr_t *)PTE_NEXT_ADDR(kernel_pml4[0]);
+	((paddr_t *)pml3)[0] = kernel_pml3[0];
 
-  // set pml3[0] with parent pml3[0], mapping kernel space
-  paddr_t *parent_pml4 = (paddr_t *)store_cr3();
-  paddr_t *parent_pml3 = (paddr_t *)PAGE_ADDRESS(parent_pml4[0]);
-  ((paddr_t *)pml3_page)[0] = parent_pml3[0];
+	/* La partie setup pgt est terminee, il faut maintenant
+	 * allouer.
+	*/
 
-  // map task memory
-  // printk("  indices of vaddr %p: %d, %d, %d, %d\n", ctx->load_vaddr,
-  //        PAGE_INDEX_PML4(ctx->load_vaddr), PAGE_INDEX_PML3(ctx->load_vaddr),
-  //        PAGE_INDEX_PML2(ctx->load_vaddr), PAGE_INDEX_PML1(ctx->load_vaddr));
-  paddr_t vaddr = ctx->load_vaddr;
-  paddr_t paddr = ctx->load_paddr;
+	/* On itere sur toutes la partie load_end_paddr - load_paddr */
+	vaddr_t vaddr = ctx->load_vaddr;
+	paddr_t paddr = ctx->load_paddr;
 
-  // map process payload (text, data) from the physical memory
-  for (; paddr < ctx->load_end_paddr; paddr += PAGE_SIZE) {
-    map_page(ctx, vaddr, paddr);
-    vaddr += PAGE_SIZE;
-  }
+	for(; paddr < ctx->load_end_paddr; paddr+=PAGE_SIZE) {
+		map_page(ctx, vaddr, paddr);
+		vaddr+=PAGE_SIZE;
+	}
 
-  // map remaining unmapped virtual addresses till bss end
-  for (; vaddr < ctx->bss_end_vaddr; vaddr += PAGE_SIZE) {
-    mmap(ctx, vaddr);
-  }
+
+	printk("before bss alloc\n");
+	/* A ce moment, vaddr = bss_start */
+	for(; vaddr < ctx->bss_end_vaddr; vaddr+=PAGE_SIZE) {
+		paddr_t new_page = alloc_page();
+		memset((void *)new_page, 0, PAGE_SIZE);
+		map_page(ctx, vaddr, new_page);
+	}
+	
+
+	printk("!!Task loaded: load_vaddr=%p, load_end_vaddr=%p, bss_end_vaddr=%p\n",
+		ctx->load_vaddr, vaddr,  ctx->bss_end_vaddr);
 }
+
+// void load_task(struct task *ctx) {
+//   // printk("> load_task: pgt: %p, load_vaddr: %p, bss_end_vaddr: %p\n",
+//   // ctx->pgt,
+//   //        ctx->load_vaddr, ctx->bss_end_vaddr);
+//   // printk("  load_paddr: %p, load_end_paddr: %p\n", ctx->load_paddr,
+//   //        ctx->load_end_paddr);
+
+//   // allocate process' page table
+//   paddr_t pml4_page = alloc_page();
+//   memset((void *)pml4_page, 0, PAGE_SIZE);
+//   ctx->pgt = pml4_page;
+//   // printk("  alloc pml4, pgt: %p\n", ctx->pgt);
+
+//   // allocate process' pml3
+//   paddr_t pml3_page = alloc_page();
+//   memset((void *)pml3_page, 0, PAGE_SIZE);
+//   ((paddr_t *)pml4_page)[0] =
+//       pml3_page | PAGE_FLAG_USER | PAGE_FLAG_WRITE | PAGE_FLAG_VALID;
+
+//   // set pml3[0] with parent pml3[0], mapping kernel space
+//   paddr_t *parent_pml4 = (paddr_t *)store_cr3();
+//   paddr_t *parent_pml3 = (paddr_t *)PAGE_ADDRESS(parent_pml4[0]);
+//   ((paddr_t *)pml3_page)[0] = parent_pml3[0];
+
+//   // map task memory
+//   // printk("  indices of vaddr %p: %d, %d, %d, %d\n", ctx->load_vaddr,
+//   //        PAGE_INDEX_PML4(ctx->load_vaddr), PAGE_INDEX_PML3(ctx->load_vaddr),
+//   //        PAGE_INDEX_PML2(ctx->load_vaddr), PAGE_INDEX_PML1(ctx->load_vaddr));
+//   paddr_t vaddr = ctx->load_vaddr;
+//   paddr_t paddr = ctx->load_paddr;
+
+//   // map process payload (text, data) from the physical memory
+//   for (; paddr < ctx->load_end_paddr; paddr += PAGE_SIZE) {
+//     map_page(ctx, vaddr, paddr);
+//     vaddr += PAGE_SIZE;
+//   }
+
+//   // map remaining unmapped virtual addresses till bss end
+//   for (; vaddr < ctx->bss_end_vaddr; vaddr += PAGE_SIZE) {
+//     mmap(ctx, vaddr);
+//   }
+// }
 
 void set_task(struct task *ctx) { load_cr3(ctx->pgt); }
 

@@ -1,32 +1,47 @@
 [
     {
         "command": "cc -c -Wall -Wextra -O2 -nostdlib -nodefaultlibs -fno-builtin -fno-stack-protector -Wno-implicit-fallthrough -mno-sse -mno-mmx -o obj/kernel/idt.o -Iinclude kernel/idt.c",
-        "directory": "/home/baptiste/enseignements/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources",
-        "file": "/home/baptiste/enseignements/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources/kernel/idt.c"
+        "directory": "/home/wyseh/these/teaching/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources",
+        "file": "/home/wyseh/these/teaching/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources/kernel/idt.c"
     },
     {
         "command": "cc -c -Wall -Wextra -O2 -nostdlib -nodefaultlibs -fno-builtin -fno-stack-protector -Wno-implicit-fallthrough -mno-sse -mno-mmx -o obj/kernel/main.o -Iinclude kernel/main.c",
-        "directory": "/home/baptiste/enseignements/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources",
-        "file": "/home/baptiste/enseignements/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources/kernel/main.c"
+        "directory": "/home/wyseh/these/teaching/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources",
+        "file": "/home/wyseh/these/teaching/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources/kernel/main.c"
     },
     {
         "command": "cc -c -Wall -Wextra -O2 -nostdlib -nodefaultlibs -fno-builtin -fno-stack-protector -Wno-implicit-fallthrough -mno-sse -mno-mmx -o obj/kernel/memory.o -Iinclude kernel/memory.c",
-        "directory": "/home/baptiste/enseignements/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources",
-        "file": "/home/baptiste/enseignements/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources/kernel/memory.c"
+        "directory": "/home/wyseh/these/teaching/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources",
+        "file": "/home/wyseh/these/teaching/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources/kernel/memory.c"
     },
     {
         "command": "cc -c -Wall -Wextra -O2 -nostdlib -nodefaultlibs -fno-builtin -fno-stack-protector -Wno-implicit-fallthrough -mno-sse -mno-mmx -o obj/kernel/printk.o -Iinclude kernel/printk.c",
-        "directory": "/home/baptiste/enseignements/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources",
-        "file": "/home/baptiste/enseignements/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources/kernel/printk.c"
+        "directory": "/home/wyseh/these/teaching/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources",
+        "file": "/home/wyseh/these/teaching/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources/kernel/printk.c"
     },
     {
         "command": "cc -c -Wall -Wextra -O2 -nostdlib -nodefaultlibs -fno-builtin -fno-stack-protector -Wno-implicit-fallthrough -mno-sse -mno-mmx -o obj/kernel/task.o -Iinclude kernel/task.c",
-        "directory": "/home/baptiste/enseignements/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources",
-        "file": "/home/baptiste/enseignements/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources/kernel/task.c"
+        "directory": "/home/wyseh/these/teaching/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources",
+        "file": "/home/wyseh/these/teaching/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources/kernel/task.c"
     },
     {
         "command": "cc -c -Wall -Wextra -O2 -nostdlib -nodefaultlibs -fno-builtin -fno-stack-protector -Wno-implicit-fallthrough -mno-sse -mno-mmx -o obj/kernel/vga.o -Iinclude kernel/vga.c",
-        "directory": "/home/baptiste/enseignements/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources",
-        "file": "/home/baptiste/enseignements/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources/kernel/vga.c"
+        "directory": "/home/wyseh/these/teaching/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources",
+        "file": "/home/wyseh/these/teaching/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources/kernel/vga.c"
+    },
+    {
+        "command": "cc -c -Wall -Wextra -O2 -nostdlib -nodefaultlibs -fno-builtin -fno-stack-protector -Wno-implicit-fallthrough -mno-sse -mno-mmx -Iinclude -fdiagnostics-color -o obj/kernel/main.o kernel/main.c",
+        "directory": "/home/wyseh/these/teaching/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources",
+        "file": "/home/wyseh/these/teaching/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources/kernel/main.c"
+    },
+    {
+        "command": "cc -c -Wall -Wextra -O2 -nostdlib -nodefaultlibs -fno-builtin -fno-stack-protector -Wno-implicit-fallthrough -mno-sse -mno-mmx -Iinclude -fdiagnostics-color -o obj/kernel/memory.o kernel/memory.c",
+        "directory": "/home/wyseh/these/teaching/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources",
+        "file": "/home/wyseh/these/teaching/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources/kernel/memory.c"
+    },
+    {
+        "command": "cc -c -Wall -Wextra -O2 -nostdlib -nodefaultlibs -fno-builtin -fno-stack-protector -Wno-implicit-fallthrough -mno-sse -mno-mmx -Iinclude -fdiagnostics-color -o obj/kernel/task.o kernel/task.c",
+        "directory": "/home/wyseh/these/teaching/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources",
+        "file": "/home/wyseh/these/teaching/nmv/TD/1/nmv_riwan/labs/tp1/nmv-tp1-coeffic-riwan/tp1-sources/kernel/task.c"
     }
 ]

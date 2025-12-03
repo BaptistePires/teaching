@@ -34,21 +34,18 @@ void main_multiboot2(void *mb2)
 	sti();                                          /* enable interrupts */
 
 	/* Exercice 1 */
-	uint64_t cr3 = store_cr3();
-	printk("Initial CR3=%p\n", cr3);
-	print_pgt(cr3, 4);
+	// uint64_t cr3 = store_cr3();
+	// printk("Initial CR3=%p\n", cr3);
+	// print_pgt(cr3, 4);
  
-	// // /* Exercice 2 */
-	struct task fake;
-	paddr_t new;
-	fake.pgt = store_cr3();
-	printk("Initial CR3=%p\n", fake.pgt);
-	new = alloc_page();
-	map_page(&fake, 0x201000, new);
-
-	paddr_t *pgt=  (paddr_t*)store_cr3();
-	printk("cr3=%p first entry=%p\n", pgt, pgt[0]);
-	print_pgt(store_cr3(), 4);
+	// // // /* Exercice 2 */
+	// struct task fake;
+	// paddr_t new;
+	// fake.pgt = store_cr3();
+	// printk("Initial CR3=%p\n", fake.pgt);
+	// new = alloc_page();
+	// map_page(&fake, 0x201000, new);
+	// print_pgt(store_cr3(), 4);
  
 	load_tasks(mb2);                         /* load the tasks in memory */
 	printk("Tasks loaded !\n");

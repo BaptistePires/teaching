@@ -36,8 +36,8 @@ __attribute__((noreturn)) void main_multiboot2(void *mb2) {
   mmap(&fake, 0x201000);
   print_pgt(fake.pgt, 4);
 
-  // load_tasks(mb2); /* load the tasks in memory */
-  // run_tasks();     /* run the loaded tasks */
+  load_tasks(mb2); /* load the tasks in memory */
+  run_tasks();     /* run the loaded tasks */
 
   printk("\nGoodbye!\n"); /* fairewell */
   die();                  /* the work is done, we can die now... */
