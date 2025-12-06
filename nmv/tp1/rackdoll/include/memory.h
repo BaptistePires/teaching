@@ -31,6 +31,7 @@
 #define PTE_IS_NO_EXECUTE(p)	((p) & PTE_FLAG_NO_EXECUTE)
 
 // pte addr makss
+                                
 #define _PTE_ADDR_MASK		0xffffffff000
 #define PTE_NEXT_ADDR(p)	((p) & _PTE_ADDR_MASK)
 
