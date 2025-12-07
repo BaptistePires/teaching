@@ -4,12 +4,15 @@
 #include <stdlib.h>
 #include <sys/mman.h>
 
+#ifndef PARAM
+#  define PARAM            0
+#endif
 
 #define MEMORY_SIZE        (1ul << 21)
 #define WARMUP             10000
 #define PRECISION          1000000
 
-
+#define CACHELINE_SIZE     64
 static inline char *alloc(void)
 {
 	size_t i;
@@ -25,9 +28,43 @@ static inline char *alloc(void)
 	return ret;
 }
 
+// static inline uint64_t detect(char *mem)
+// {
+// 	size_t i, p;
+// 	uint64_t start, end;
+
+// 	for (p = 0; p < WARMUP; p++)
+// 		for (i = 0; i < MEMORY_SIZE; i += CACHELINE_SIZE)
+// 			writemem(mem + i);
+
+// 	start = now();
+
+// 	for (p = 0; p < PRECISION; p++)
+// 		for (i = 0; i < MEMORY_SIZE; i += CACHELINE_SIZE)
+// 			writemem(mem + i);
+
+// 	end = now();
+
+// 	return (end - start) / PRECISION;
+// }
+
 static inline uint64_t detect(char *mem)
 {
-	return 0;
+
+	size_t i, p;
+	uint64_t start, end;
+	for (p = 0; p < WARMUP; p++)
+		for (i = 0; i < PARAM; i += CACHELINE_SIZE)
+			writemem(mem + i);
+
+	start = now();
+	for (p = 0; p < PRECISION; p++)
+		for (i = 0; i < PARAM; i += CACHELINE_SIZE)
+			writemem(mem + i);
+
+	end = now();
+
+	return (end - start) / PRECISION;
 }
 
 int main(void)

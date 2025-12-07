@@ -7,9 +7,9 @@ CCFLAGS := -Wall -Wextra -pedantic -O2
 LDFLAGS := -lpthread
 
 experiments := cacheline cachesize cacheway siblings
-cacheline-param := 1 8 12 16 32 48 64 80 96 128 256
-cachesize-param := 1
-cacheway-param  := 1
+cacheline-param := 8 12 16 32 48 64 80 96 128
+cachesize-param := 0x3000 0x4000 0x5000 0x6000 0x7000 0x8000 0x9000 0xA000 0xB000 0xC000 49152 114687 180222 245757 311292 376827 442362 507897 573432 
+cacheway-param  := 1 2 4 8 12 14
 siblings-param  := 1
 
 

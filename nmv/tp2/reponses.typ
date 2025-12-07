@@ -12,6 +12,7 @@
   #place(bottom, float:true)[#text(size: 12pt)[Baptiste Pires - 03/12/2025]]
 ]
 
+
 #pagebreak()
 
 
@@ -22,3 +23,4 @@ Comme Linux fait de la lazy allocation, même si on a fait malloc, la mémoire n
 
 
 == Question 2
+Ca dépend de la valeur de #ccode("PARAM"). Si $"PARAM" < ("sizeof(mem[0])/cache_line_size")$

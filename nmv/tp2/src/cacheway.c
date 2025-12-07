@@ -4,35 +4,60 @@
 #include <stdlib.h>
 #include <sys/mman.h>
 
+#ifndef PARAM
+#define PARAM 1
+#endif
 
-#define MEMORY_SIZE        (1ul << 20)
+#define CACHELINE_SIZE 64
+#define CACHE_SIZE 32768
+#define NB_SLOTS (CACHE_SIZE / CACHELINE_SIZE)
+#define NB_SETS (NB_SLOTS / PARAM)
+/* (number of lines / number of ways) * line size */
+#define SKIP_SIZE (NB_SETS * CACHELINE_SIZE)
 
+#define MEMORY_SIZE (1ul << 20)
+#define WARMUP 10000
+#define PRECISION 1000000
 
-static inline char *alloc(void)
-{
-	size_t i;
-	char *ret = mmap(NULL, MEMORY_SIZE, PROT_READ | PROT_WRITE,
-			 MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+static inline char *alloc(void) {
+  size_t i;
+  char *ret = mmap(NULL, MEMORY_SIZE, PROT_READ | PROT_WRITE,
+                   MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
-	if (ret == MAP_FAILED)
-		abort();
+  if (ret == MAP_FAILED)
+    abort();
 
-	for (i = 0; i < MEMORY_SIZE; i += PAGE_SIZE)
-		ret[i] = 0;
+  for (i = 0; i < MEMORY_SIZE; i += PAGE_SIZE)
+    ret[i] = 0;
 
-	return ret;
+  return ret;
 }
 
-static inline uint64_t detect(char *mem)
-{
-	return 0;
+static inline uint64_t detect(char *mem) {
+  size_t i, assoc, p;
+  uint64_t start, end;
+
+  for (p = 0; p < WARMUP; p++)
+    for (assoc = 0; assoc < PARAM; assoc++)
+      for (i = 0; i < NB_SETS; i++)
+        writemem(mem + (i * CACHELINE_SIZE) + (assoc * CACHE_SIZE));
+
+  start = now();
+
+  for (p = 0; p < PRECISION; p++)
+    for (assoc = 0; assoc < PARAM; assoc++)
+      for (i = 0; i < NB_SETS; i++)
+        writemem(mem + (i * CACHELINE_SIZE) + (assoc * CACHE_SIZE));
+
+  end = now();
+
+  return (end - start);
 }
 
-int main(void)
-{
-	char *mem = alloc();
-	uint64_t t = detect(mem);
+int main(void) {
+  char *mem = alloc();
+  uint64_t t = detect(mem);
 
-	printf("%d %lu\n", PARAM, t);
-	return EXIT_SUCCESS;
+  printf("%d %lu\n", PARAM, t);
+  return EXIT_SUCCESS;
 }
