@@ -1,0 +1,544 @@
+#+TITLE: TP3 NMV : Virtualisation
+#+DATE: Mardi 27 décembre 2022
+#+AUTHOR: Aymeric Agon-Rambosson
+#+EMAIL: aymeric.agon-rambosson@lip6.fr
+#+PROPERTY: header-args :mkdirp yes
+#+STARTUP: inlineimages
+#+OPTIONS: ^:{} toc:nil num:nil
+#+LATEX_HEADER: \usepackage[a4paper,top=2cm, bottom=2cm, left=2cm, right=2cm]{geometry}
+#+LATEX_HEADER: \usepackage{parskip}
+
+* Exercice 1
+
+** Question 1
+
+Pour que le système invité ait l'impression d'accéder directement à la mémoire
+physique, il faut que les adresses virtuelles auxquelles il tente d'accéder
+soient identiques aux adresses physiques correspondantes.
+
+Il faut que la fonction de correspondance soit la fonction identité.
+
+** Question 2
+
+Cette question requiert une lecture un peu précise du main de monitor, et
+quelques hypothèses sur le comportement de l'invité.
+
+L'allocation de "mémoire physique" (en fait, la création du fichier dorsal
+mémoire) ne se fait qu'une seule fois, au début du processus janus :
+
+#+begin_src c
+
+  allocate_physical_memory(PHYSICAL_MEMORY);
+
+#+end_src
+
+La correspondance plate ne se fait aussi qu'une seule fois, juste après
+l'opération précédente :
+
+#+begin_src c
+
+  set_flat_mapping(PHYSICAL_MEMORY);
+
+#+end_src
+
+Pour cette raison, on n'a pas besoin de garder de mémoire de l'état des adresses
+virtuelles déjà allouées.
+
+On part du principe que l'invité est susceptible de faire des accès mémoire dans
+toute la zone autorisée, pour une limite de taille égale à PHYSICAL_MEMORY. On
+admet que PHYSICAL_MEMORY a été choisi correctement.
+
+Il faut donc donner accès à une quantité de ~ram~ mémoire de la manière
+suivante :
+- en commençant à 0x100000 (1 Mio), jusqu'à 0x80000000 (2 Gio) au maximum.
+- en continuant si nécessaire de 0x100000000 (4 Gio) à 0x700000000000 (112 Tio)
+  au maximum.
+
+Notre implémentation sera donc la suivante :
+
+#+begin_src c
+
+  #define GUEST_MIN_LOW 0x100000
+  #define GUEST_MAX_LOW 0x80000000
+
+  #define GUEST_MIN_HIGH 0x100000000
+  #define GUEST_MAX_HIGH 0x700000000000
+
+  void set_flat_mapping(size_t ram)
+  {
+	  if (ram < GUEST_MAX_LOW - GUEST_MIN_LOW) {
+		  map_page(GUEST_MIN_LOW, GUEST_MIN_LOW, ram);
+	  } else {
+		  map_page(GUEST_MIN_LOW, GUEST_MIN_LOW,
+			   GUEST_MAX_LOW - GUEST_MIN_LOW);
+		  map_page(GUEST_MIN_HIGH, GUEST_MIN_HIGH,
+			   ram - (GUEST_MAX_LOW - GUEST_MIN_LOW));
+	  }
+  }
+
+#+end_src
+
+La fonction ~display_mapping()~ nous affiche la chose suivante :
+
+#+begin_quote
+00010000-00012000 r--p 00000000 103:02 58590616          /home/rico/Code/NMV/TP3/janus/bin/monitor
+00012000-00015000 r-xp 00002000 103:02 58590616          /home/rico/Code/NMV/TP3/janus/bin/monitor
+00015000-00016000 r--p 00005000 103:02 58590616          /home/rico/Code/NMV/TP3/janus/bin/monitor
+00016000-00017000 r--p 00005000 103:02 58590616          /home/rico/Code/NMV/TP3/janus/bin/monitor
+00017000-00018000 rw-p 00006000 103:02 58590616          /home/rico/Code/NMV/TP3/janus/bin/monitor
+00100000-80000000 rwxs 00100000 00:23 283                /tmp/janus-backend.mem (deleted)
+80000000-80007000 rw-p 00000000 00:00 0 
+802d5000-802f6000 rw-p 00000000 00:00 0                  [heap]
+100000000-140100000 rwxs 100000000 00:23 283             /tmp/janus-backend.mem (deleted)
+7fab9ec23000-7fabb6c27000 rw-p 00000000 00:00 0 
+7fabb6c27000-7fabb6c49000 r--p 00000000 103:02 22024750  /usr/lib/x86_64-linux-gnu/libc-2.31.so
+7fabb6c49000-7fabb6da3000 r-xp 00022000 103:02 22024750  /usr/lib/x86_64-linux-gnu/libc-2.31.so
+7fabb6da3000-7fabb6df2000 r--p 0017c000 103:02 22024750  /usr/lib/x86_64-linux-gnu/libc-2.31.so
+7fabb6df2000-7fabb6df6000 r--p 001ca000 103:02 22024750  /usr/lib/x86_64-linux-gnu/libc-2.31.so
+7fabb6df6000-7fabb6df8000 rw-p 001ce000 103:02 22024750  /usr/lib/x86_64-linux-gnu/libc-2.31.so
+7fabb6df8000-7fabb6dfc000 rw-p 00000000 00:00 0 
+7fabb6e21000-7fabb7107000 r-xp 00000000 103:02 58595242  /home/rico/Code/NMV/TP3/janus/xed/libxed.so
+7fabb7107000-7fabb7306000 ---p 002e6000 103:02 58595242  /home/rico/Code/NMV/TP3/janus/xed/libxed.so
+7fabb7306000-7fabb7374000 rw-p 002e5000 103:02 58595242  /home/rico/Code/NMV/TP3/janus/xed/libxed.so
+7fabb7374000-7fabb737a000 rw-p 00000000 00:00 0 
+7fabb737a000-7fabb737b000 r--p 00000000 103:02 22020289  /usr/lib/x86_64-linux-gnu/ld-2.31.so
+7fabb737b000-7fabb739b000 r-xp 00001000 103:02 22020289  /usr/lib/x86_64-linux-gnu/ld-2.31.so
+7fabb739b000-7fabb73a3000 r--p 00021000 103:02 22020289  /usr/lib/x86_64-linux-gnu/ld-2.31.so
+7fabb73a4000-7fabb73a5000 r--p 00029000 103:02 22020289  /usr/lib/x86_64-linux-gnu/ld-2.31.so
+7fabb73a5000-7fabb73a6000 rw-p 0002a000 103:02 22020289  /usr/lib/x86_64-linux-gnu/ld-2.31.so
+7fabb73a6000-7fabb73a7000 rw-p 00000000 00:00 0 
+7fff4ec81000-7fff4eca2000 rw-p 00000000 00:00 0          [stack]
+7fff4edd4000-7fff4edd8000 r--p 00000000 00:00 0          [vvar]
+7fff4edd8000-7fff4edda000 r-xp 00000000 00:00 0          [vdso]
+#+end_quote
+
+Les lignes qui nous intéressent sont celles qui se terminent par
+"/tmp/janus-backend.mem (deleted)". Apparemment, la quantité de mémoire demandée
+ne tenait pas dans l'intervalle autorisé bas, il a fallu découper en deux
+intervalles :
+- le premier entre 0x100000 et 0x80000000 (soit 2047 Mio)
+- le deuxième entre 0x100000000 et 0x140100000 (soit 1025 Mio)
+
+La quantité totale est bien de 2047 + 1025 Mio, soient 3 Gio, ce qui est
+exactement la valeur de PHYSICAL_MEMORY.
+
+De plus, on peut voir que pour les deux intervalles qu'on a alloué, l'adresse
+virtuelle est identique à l'adresse physique (représentée par l'offset).
+
+* Exercice 2
+
+** Question 1
+
+Si on suppose un modèle mémoire plat, autrement dit une identité entre les
+adresses virtuelles et les adresse physiques, alors pour atteindre l'adresse
+physique 0xb8000, il faudra écrire à l'adresse virtuelle 0xb8000.
+
+** Question 2
+
+Si on se réfère au modèle mémoire de janus, on voit que tous les accès mémoire
+entre 0 et 1 Mio fait par l'invité sont attrapés par janus. L'adresse virtuelle
+0xb8000 est bien en-dessous de 1 Mio, elle sera donc attrapée.
+
+** Question 3
+
+On a deux octets en mémoire par case de l'écran CGA. La valeur qu'on écrira
+dedans devra donc tenir dans ces deux octets. Le prototype de la fonction
+~trap_write()~ semble permettre une écriture d'une valeur prenant jusqu'à 8
+octets (~uint64_t val~). Dans les faits, toutes les valeurs passées à cette
+fonction lors de l'exécution tiennent dans 2 octets.
+
+Le paramètre ~offset~ doit être compris comme le décalage, par pas de 2 octets,
+depuis l'adresse ~0xb8000~.
+
+Voilà donc notre implémentation de la fonction :
+
+#+begin_src c
+
+  #define CGA_BEGIN 0xb8000
+
+  int trap_write(vaddr_t addr, size_t size, uint64_t val)
+  {
+	  write_vga((addr - CGA_BEGIN) / 2, (uint16_t) val);
+
+	  return 1;
+  }
+
+#+end_src
+
+Un appel bien placé à la fonction ~display_vga()~ permet de faire apparaître la
+chose suivante :
+
+#+begin_quote
+Guest starting...
+
+mmap munmap
+  0x200001 => 1
+  0x200001 => 1
+
+double map
+  0x200000 := 42 --> 0x201000 = 0
+  0x201000 := 18 --> 0x200000 = 42
+
+do zero copy
+  0x201000 = 18 0 0
+  0x201000 = 18 0 0
+
+do lazy alloc
+
+
+
+
+
+
+
+
+
+
+Bus error
+#+end_quote
+
+On en déduit que notre fonction ~trap_write()~ fonctionne.
+
+* Exercice 3
+
+On est effectivement capable de faire (mal) certaines des tâches prévues avant
+de rencontrer une erreur.
+
+** Question 1
+
+On se rappelle les caractéristiques des entrées de la table des pages du premier
+TP.
+
+On se donne les mêmes macros :
+
+#+begin_src c
+
+  #define PGT_VALID_MASK 0x1
+  #define PGT_ADDRESS_MASK 0xFFFFFFFFFF000
+  #define PGT_HUGEPAGE_MASK 0x80
+
+  #define PGT_IS_VALID(p) (p & PGT_VALID_MASK)
+  #define PGT_IS_HUGEPAGE(p) (p & PGT_HUGEPAGE_MASK)
+  #define PGT_ADDRESS(p) (p & PGT_ADDRESS_MASK)
+
+#+end_src
+
+Dans cette question, on veut afficher les correspondances virtuel-physiques.
+
+On ne veut donc afficher que le contenu des entrées qui sont finales, soient ou
+bien de niveau 1 ou bien marquées grandes pages.
+
+On veut aussi afficher l'adresse virtuelle, ce qui fait qu'on doit garder la
+mémoire des indices des niveaux passés.
+
+On doit allouer de la mémoire dynamique pour le contenu de la page physique, et
+ne pas oublier de la libérer.
+
+La chose la plus simple est encore de se donner une fonction récursive :
+
+#+begin_src c
+
+  void parse_pml_level(paddr_t pml, vaddr_t prefix, uint8_t lvl)
+  {
+	  uint64_t *p = malloc(4096);
+	  vaddr_t new_prefix;
+	  int i;
+
+	  read_physical(p, 4096, pml);
+
+	  for (i = 0; i < 512; i++) {
+		  if (PGT_IS_VALID(p[i])) {
+			  new_prefix = prefix + (i << (12 + (lvl - 1) * 9));
+			  if (lvl == 1 || PGT_IS_HUGEPAGE(p[i])) {
+				  /* Niveau final */
+				  printf("v: 0x%lx\tp: 0x%lx\n", new_prefix,
+					 PGT_ADDRESS(p[i]));
+			  } else {
+				  /* Pas encore niveau final */
+				  parse_pml_level(PGT_ADDRESS(p[i]), new_prefix,
+						  lvl - 1);
+			  }
+		  }
+	  }
+
+	  free(p);
+  }
+
+#+end_src
+
+Il suffit maintenant d'initialiser la récursion avec les valeurs idoines :
+
+#+begin_src c
+
+  void parse_page_table(paddr_t cr3)
+  {
+	  parse_pml_level(cr3, 0, 4);
+  }
+
+#+end_src
+
+On a l'affichage suivant, qui correspond bien au dessin :
+
+#+begin_quote
+v: 0x0  p: 0x0
+#+end_quote
+
+On a bien la correspondance identité du TP 1 sur les deux premiers Mio de la
+mémoire.
+
+** Question 2
+
+La structure qui va contenir la correspondance sera la suivante :
+
+#+begin_src c
+
+  struct {
+	  vaddr_t vaddr;
+	  paddr_t paddr;
+	  size_t size;
+  };
+
+#+end_src
+
+Le champ ~size~ est important, il permet de distinguer les pages normales des
+grandes pages.
+
+On a le droit de supposer qu'on aura jamais plus de 64 correspondances par
+processus. On peut donc créer, par processus, un tableau de 64 de ces
+structures.
+
+Il faut aussi prévoir comment retrouver le bon tableau quand on change de
+processus. On propose de l'identifier par le cr3, puisqu'un cr3 identifie de
+manière unique une table des pages, donc un processus.
+
+La consigne ne nous donne pas d'hypothèse sur la quantité de processus que
+l'invité est susceptible de créer. Sans aucune hypothèse, on devrait faire une
+structure dynamique. Mais puisqu'on a la flemme, on va supposer qu'il n'y a pas
+plus de 10 processus différents dans la vie du système invité.
+
+La structure qui stocke toutes les informations d'un processus :
+
+#+begin_src c
+
+  struct shadow_page_table {
+	  paddr_t cr3;
+	  struct {
+		  vaddr_t vaddr;
+		  paddr_t paddr;
+		  size_t size;
+	  } mappings[64];
+  };
+
+#+end_src
+
+On déclare un tableau global de 10 telles structures :
+
+#+begin_src c
+
+  #define SHADOW_PAGE_TABLE_SIZE 10
+
+  struct shadow_page_table {
+	  paddr_t cr3;
+	  struct {
+		  vaddr_t vaddr;
+		  paddr_t paddr;
+		  size_t size;
+	  } mappings[64];
+  } shadow_page_tables[SHADOW_PAGE_TABLE_SIZE];
+
+#+end_src
+
+On propose de modifer ~parse_page_table()~ de manière à ce que la bonne entrée
+du tableau soit trouvée (et qu'une soit créée si aucune n'existe), et que cette
+entrée soit remplie correctement.
+
+La fonction qui permet de trouver ou de créer la bonne entrée est la suivante :
+
+#+begin_src c
+
+  struct shadow_page_table *find_shadow_page_table(paddr_t cr3, uint8_t whiten)
+  {
+	  int i;
+
+	  for (i = 0; i < SHADOW_PAGE_TABLE_SIZE; ++i) {
+		  if (shadow_page_tables[i].cr3 == cr3 ||
+		      shadow_page_tables[i].cr3 == 0) {
+			  if (whiten)
+				  memset(&shadow_page_tables[i], 0,
+					 sizeof(struct shadow_page_table));
+			  shadow_page_tables[i].cr3 = cr3;
+			  return &shadow_page_table[i];
+		  }
+	  }
+
+	  /* Ne saurait advenir */
+	  return NULL;
+  }
+
+#+end_src
+
+On remarque qu'on blanchit toutes les entrées sur demande.
+
+On modifie la fonction de parcours d'une fraction de table des pages ainsi :
+
+#+begin_src c
+
+  void parse_pml_level(paddr_t pml, vaddr_t prefix, uint8_t lvl,
+		       struct shadow_page_table *pgt, uint8_t index)
+  {
+	  uint64_t *p = malloc(4096);
+	  vaddr_t new_prefix;
+	  int i;
+
+	  read_physical(p, 4096, pml);
+
+	  for (i = 0; i < 512; i++) {
+		  if (PGT_IS_VALID(p[i])) {
+			  new_prefix = prefix + (i << (12 + (lvl - 1) * 9));
+			  if (lvl == 1 || PGT_IS_HUGEPAGE(p[i])) {
+				  /* Niveau final */
+				  pgt->mappings[index].vaddr = new_prefix;
+				  pgt->mappings[index].paddr = PGT_ADDRESS(p[i]);
+				  pgt->mappings[index].size =
+					  4096 << ((lvl - 1) * 9);
+				  index++;
+			  } else {
+				  /* Pas encore niveau final */
+				  parse_pml_level(PGT_ADDRESS(p[i]), new_prefix,
+						  lvl - 1, pgt, index);
+			  }
+		  }
+	  }
+
+	  free(p);
+  }
+
+#+end_src
+
+L'initialisation de la récursion se fait maintenant ainsi :
+
+#+begin_src c
+
+  void parse_page_table(paddr_t cr3)
+  {
+	  struct shadow_page_table *cur = find_shadow_page_table(cr3, 1);
+
+	  parse_pml_level(cr3, 0, 4, cur, 0);
+  }
+
+#+end_src
+
+La fonction ~set_page_table()~ n'a pas (encore) besoin d'être modifiée.
+
+** Question 3
+
+La fonction ~update_mappings()~ va devoir parcourir la table des pages fantôme
+idoine et pour chaque entrée, supprimer la correspondance existante si il y en a
+une, et créer la correspondance indiquée par la table des pages fantôme :
+
+Théoriquement, on devrait supprimer tous les mappings préexistants, pas
+seulement ceux qui collisionnent avec les nouveaux. On n'a aucune idée de quels
+sont exactement les mappings préexistants.
+
+#+begin_src c
+  void update_mappings(paddr_t cr3)
+  {
+	  struct shadow_page_table *cur = find_shadow_page_table(cr3, 0);
+	  int i;
+
+	  /* Ne saurait advenir : la fonction find_shadow_page_table retourne
+	   ,* nécessairement un pointeur valable */
+	  if (!cur)
+		  return;
+
+	  /* Débogage */
+
+	  /* for (i = 0; i < 64; ++i) { */
+	  /* 	if (cur->pmlx[i]) { */
+	  /* 		printf("0x%lx 0x%lx\n", cr3, cur->pmlx[i]); */
+	  /* 	} */
+	  /* } */
+
+	  for (i = 0; i < 64; ++i) {
+		  if (cur->mappings[i].size &&
+		      VALID_GUEST_ACCESS(cur->mappings[i].vaddr)) {
+
+			  unmap_page(cur->mappings[i].vaddr,
+				     cur->mappings[i].size);
+
+			  /* printf("0x%lx 0x%lx %ld Kio\n", */
+			  /*        cur->mappings[i].vaddr, */
+			  /*        cur->mappings[i].paddr, */
+			  /*        cur->mappings[i].size / 1024); */
+
+			  map_page(cur->mappings[i].vaddr,
+				   cur->mappings[i].paddr,
+				   cur->mappings[i].size);
+
+
+		  }
+	  }
+  }
+#+end_src
+
+Bien évidemment, il faut que l'accès mémoire de l'invité soit valable. On se
+donne une macro pour vérifier :
+
+#+begin_src c
+  #define VALID_GUEST_ACCESS(v)				\
+	  ((v >= GUEST_MIN_LOW && v < GUEST_MAX_LOW) ||	\
+	   (v >= GUEST_MIN_HIGH && v < GUEST_MAX_HIGH))
+#+end_src
+
+** Question 4
+
+Rendre effectives les adresses d'une nouvelle table des pages fantôme correspond
+à récupérer le cr3 dont on veut appliquer les correspondances, trouver la table
+des pages fantôme correspondant à ce cr3, et appliquer les adresses
+correspondantes :
+
+#+begin_src c
+  void set_page_table(void)
+  {
+	  paddr_t cr3 = mov_from_control(3);
+
+	  parse_page_table(cr3);
+
+	  update_mappings(cr3);
+
+	  display_mapping();
+  }
+#+end_src
+
+* Exercice 4
+
+** Question 1
+
+La protection se fait sur des adresses virtuelles, pas des adresses physiques.
+
+En effet, la protection est implémentée dans la table des pages. Il est possible
+de positionner des bits qui permettent par exemple d'exécuter ou de modifier le
+contenu de la page. C'est la MMU qui tient compte de ces bits et qui proteste si
+besoin.
+
+** Question 2
+
+On modifie la structure ainsi :
+
+#+begin_src c
+
+  struct shadow_page_table {
+	  paddr_t cr3;
+	  struct {
+		  vaddr_t vaddr;
+		  paddr_t paddr;
+		  size_t size;
+	  } mappings[64];
+	  paddr_t pmlx[64];
+  } shadow_page_tables[SHADOW_PAGE_TABLE_SIZE];
+
+#+end_src
+
+
+
+

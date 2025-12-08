@@ -1,0 +1,457 @@
+#+TITLE: TP2 NMV : Topologie mémoire
+#+DATE: Lundi 25 janvier 2021
+#+AUTHOR: Aymeric Agon-Rambosson
+#+EMAIL: aymeric.agon-rambosson@etu.upmc.fr
+#+PROPERTY: header-args :mkdirp yes
+#+STARTUP: inlineimages
+#+OPTIONS: ^:{} toc:nil num:nil
+#+LATEX_HEADER: \usepackage[a4paper,top=2cm, bottom=2cm, left=2cm, right=2cm]{geometry}
+#+LATEX_HEADER: \usepackage{parskip}
+
+* Exercice 1
+
+** Question 1
+
+Initialiser la nouvelle zone mémoire permet de déclencher effectivement
+l'allocation. Si on n'avait pas touché la zone mémoire allouée, elle n'aurait
+pas vraiment été allouée (phénomène d'allocation paresseuse). De plus, la
+correspondance adresse virtuelle-physique est faite et est probablement gardée
+dans le TLB.
+
+De cette manière, les potentiels bruits dans la mesure de la taille de la ligne
+sont éliminés.
+
+** Questions 2 et 3
+
+La réponse à cette question dépend de la valeur de PARAM.
+
+On cherche CACHE_LINE_SIZE, qui est une constante inconnue.
+
+On veut se donner une expression de des fonctions HR et MR en fonction de la
+variable PARAM.
+
+Si PARAM = 0, alors on fait toujours le même accès, on accède donc à la même
+ligne, on a plus de miss après le premier.
+
+Si PARAM = CACHE_LINE_SIZE, alors tous les accès font des miss : on est sur une
+nouvelle ligne à chaque accès mémoire.
+
+Si PARAM > CACHE_LINE_SIZE, idem.
+
+La fonction MR(PARAM) peut donc être exprimée de la manière suivante :
+
+max(PARAM / CACHE_LINE_SIZE, 1)
+
+La fonction HR(PARAM) :
+
+min((CACHE_LINE_SIZE - PARAM) / CACHE_LINE_SIZE, 0)
+
+** Question 4
+
+Quand PARAM est très inférieur à CACHE_LINE_SIZE, les hit sont très
+majoritaires, leur durée influera sur la durée d'exécution. Les cache miss ont
+beau être très minoritaire, leur durée étant plusieurs ordres de grandeur
+au-dessus de celle des hit, ils contribuent aussi beaucoup à la durée.
+
+Quand PARAM est légèrement inférieur à CACHE_LINE_SIZE (facteur 2 à 4), la durée
+des miss est déterminante, ils sont majoritaires ou seuls.
+
+Quand PARAM est supérieur à CACHE_LINE_SIZE, tous les accès sont des miss, donc
+ils sont les seuls à être déterminants.
+
+Décroître le nombre d'accès mémoire fera donc uniquement diminuer le nombre de
+hit avant CACHE_LINE_SIZE et le nombre de miss après.
+
+On doit donc nécessairement avoir une décroissance linéaire en le paramètre
+après CACHE_LINE_SIZE.
+
+On va probablement avoir une constance juste avant CACHE_LINE_SIZE.
+
+Donc le point de rupture entre ces deux tendances de décroissance nous donnera
+CACHE_LINE_SIZE.
+
+** Question 5
+
+On pourrait avoir des variations de temps d'exécution liées à du bruit,
+potentiellement causé par les autres tâches qui s'exécutent sur la machine, ou
+n'importe quoi d'autre. Pour estomper l'effet de ce bruit, on peut faire une
+moyenne sur un grand nombre de boucles (ici un million).
+
+La boucle de warmup permettrait de caler le système de prefetching du cache : en
+lui donnant un pattern d'accès mémoires sur un grand nombre de données
+d'entraînement, on lui permet de fonctionner de manière optimale pendant la
+mesure, plutôt que de manière aléatoire, ce qui permet encore une fois de
+supprimer le bruit.
+
+** Question 6
+
+On verra la courbe dans le fichier pdf.
+
+Même si l'échelle logarithmique des abscisses le cache un peu, la décroissance
+linéaire commence à partir de 64, ce qui est suffisant pour conclure que la
+ligne de cache de ma machine fait 64 octets (ce qu'on a pu vérifier par
+ailleurs).
+
+On n'arrive pas cependant à expliquer la différence entre la décroissance très
+rapide du début, et la constance entre 32 et 64.
+
+* Exercice 2
+
+** Question 1
+
+On admet que la zone mémoire dont il est question est contigüe : c'est une
+condition certes non nécessaire mais suffisante de ce qu'elle rentre en entier
+dans le cache L1 quand elle est de taille inférieure à la taille de ce dernier
+(on rappelle qu'on ne fait pas encore d'hypothèse d'associativité du cache).
+
+Si PARAM est inférieur à la taille du cache L1, alors on aura (PARAM /
+CACHE_LINE_SIZE) miss lors de la première séquence d'accès, et 0 lors des
+suivantes, en admettant bien entendu que le cache ne se fait pas flush entre les
+séquences d'accès.
+
+** Question 2
+
+Si PARAM est supérieur à la taille du cache L1, alors on aura :
+- (PARAM / CACHE_LINE_SIZE) miss lors de la première séquence d'accès.
+- (PARAM / CACHE_LINE_SIZE) - max((2 * CACHE_SIZE - PARAM) / CACHE_LINE_SIZE, 0)
+  lors des suivantes. Si PARAM est au moins le double de CACHE_SIZE, alors on
+  fera (PARAM / CACHE_LINE_SIZE) miss à toutes les séquences. Si PARAM est entre
+  CACHE_SIZE et 2 * CACHE_SIZE, alors un peu moins aux séquences suivantes.
+
+** Question 3
+
+En donnant un nombre de séquences d'accès très grand, on cherche à rendre le
+coût des miss compulsifs (première séquence) négligeables devant celui des
+suivants.
+
+Donc quand PARAM est inférieur à CACHE_SIZE, alors le coût moyen d'un accès
+mémoire converge vers le coût d'un hit.
+
+Quand PARAM est (plus de deux fois) supérieur à CACHE_SIZE, alors le coût moyen
+d'un accès mémoire converge vers
+((PARAM / CACHE_LINE_SIZE) * MISS) + (1 - (PARAM / CACHE_LINE_SIZE)) * HIT.
+
+** Question 4
+
+La méthode de détection va donc se servir de la différence des coûts moyens.
+
+La solution est toute simple, elle va consister en faire des accès mémoire
+séquentiels (avec un pas multiple de la taille d'une ligne, pour se simplifier
+les choses) sur des zones mémoire de plus en plus grande, de manière à faire
+varier le paramètre PARAM des questions précédentes.
+
+On veut donc récupérer le temps moyen d'exécution d'une quantité d'accès
+mémoire.
+
+On est censé avoir une courbe plate, et une rupture autour de la taille du cache
+L1, puis une autre autour celle du cache L2, avant d'atteindre un nouveau
+plateau.
+
+Si les accès au cache L1 sont parallélisés par le matériel (ce qui a l'air
+d'être le cas sur notre machine), on peut avoir sur des valeurs faibles de PARAM
+un début de courbe descendante plutôt que plate, la rupture sera remplacée par
+un minimum global.
+
+Voilà notre solution :
+
+#+begin_src c
+  #include "hwdetect.h"
+
+  #include <stdio.h>
+  #include <stdlib.h>
+  #include <sys/mman.h>
+
+
+  #ifndef PARAM
+  #define PARAM 64
+  #endif
+
+  #define CACHELINE_SIZE     64
+  #define MEMORY_SIZE        (1ul << 21)
+  #define WARMUP             10000
+  #define PRECISION          1000000
+
+
+  static inline char *alloc(void)
+  {
+	  size_t i;
+	  char *ret = mmap(NULL, MEMORY_SIZE, PROT_READ | PROT_WRITE,
+			   MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
+	  if (ret == MAP_FAILED)
+		  abort();
+
+	  for (i = 0; i < MEMORY_SIZE; i += PAGE_SIZE)
+		  ret[i] = 0;
+
+	  return ret;
+  }
+
+  static inline uint64_t detect(char *mem)
+  {
+	  size_t i, p;
+	  uint64_t start, end;
+
+	  for (p = 0; p < WARMUP; p++)
+		  for (i = 0; i < PARAM; i += CACHELINE_SIZE)
+			  writemem(mem + i);
+
+	  start = now();
+
+	  for (p = 0; p < PRECISION; p++)
+		  for (i = 0; i < PARAM; i += CACHELINE_SIZE)
+			  writemem(mem + i);
+
+	  end = now();
+
+	  return ((end - start) / PARAM);
+  }
+
+  int main(void)
+  {
+	  char *mem = alloc();
+	  uint64_t t = detect(mem);
+
+	  printf("%d %lu\n", PARAM, t);
+	  return EXIT_SUCCESS;
+  }
+#+end_src
+
+On regardera les deux courbes dans le répertoire pdf.
+
+On a bien une taille de cache L1 de 32 Ko, et une taille de cache L2 de 512 Ko.
+
+* Exercice 3
+
+** Question 1
+
+On suppose que les sets sont fait de manière à minimiser les miss de conflit.
+
+Le nombre d'emplacements dans le cache est donné par la quantité NB_EMPLACEMENTS
+= (CACHE_SIZE / CACHE_LINE_SIZE), soit ici 512.
+
+Si le cache est à correspondance directe, il faut que deux lignes soient
+séparées de exactement 512 * 64 octets pour être en conflit.
+
+Si on prend un cache de même taille que le précédent et qu'on le rend associatif
+2 voies, alors deux lignes séparées de 512 * 64 / 2 octets seront dans le même
+set.
+
+Si on a n le degré d'associativité du cache, alors deux lignes séparées de 512 *
+64 / n octets seront dans le même set.
+
+Le cas limite est le cache full associatif : il y a un seul set qui correspond à
+tout le cache, ce set est donc dans notre cas de 512, et donc deux lignes
+séparées de 64 octets (soient voisines) seront dans le même set. Tout se tient.
+
+** Question 2
+
+Prenons le cas du cache à correspondance directe : si on fait deux écritures
+dans le même cache set (mais sur des lignes de cache distinctes), alors on aura
+des miss compulsifs et des miss de conflit lors de la première séquence, et
+seulement des miss de conflit lors des suivantes.
+
+Dans un pareil cas, avec un cache 2-associatif, on aurait eu seulement des miss
+compulsifs sur la première séquence et seulement des hit sur les séquences
+suivantes. Pour forcer des miss de conflit, on aurait dû faire quatre écritures
+dans le même cache set.
+
+Et ainsi de suite...
+
+Avec le n le degré d'associativité du cache, il faut faire N = n*2 écritures
+dans le même cache set (sur des lignes toutes distinctes deux à deux, cela va
+sans dire) pour forcer des miss de conflit à chaque accès mémoire.
+
+** Question 3
+
+On a donc notre expérience cruciale.
+
+On rappelle les caractéristiques déjà connues de notre cache L1 : lignes de 64
+octets pour une taille totale de cache de 32ko
+
+Dans les différents programmes, on va faire des accès mémoire alignés sur des
+lignes de cache de la manière suivante. On se donne mem, un pointeur aligné sur
+64 octets :
+- un accès à mem, à mem + 64, etc..., jusqu'à mem + 32704, soient 512 accès en
+  tout. Quelle que soit la conception du cache, on doit avoir des hit sur les
+  séquences suivantes. Ce premier programme nous donnera la performance "ligne
+  de base".
+- un accès à mem, à mem + 32ki, à mem + 64, à mem + 32ki + 64, etc... jusqu'à
+  mem + 16320, mem + 32ki + 16320. On note qu'on fait toujours un total de 512
+  accès. D'après notre protocole expérimental, les accès suivants sont censés
+  donner uniquement des miss de conflit dans le cas d'un cache à correspondance
+  directe, et uniquement des hit dans le cas d'un cache 2-associatif
+- et ainsi de suite en augmentant le degré d'associativité jusqu'à 512, le
+  maximum théorique sur mon matériel (512 emplacements donc full associative
+  signifie 512-associative). Dans les faits on va s'arrêter à 32, aller plus
+  loin serait irréaliste.
+
+Tant que le degré d'associativité n'est pas atteint, on est censé avoir le même
+temps d'exécution, donc un plateau. Quand on atteint dépasse le degré
+d'associativité, le temps d'exécution est censé exploser (pas forcément
+atteindre un second plateau, forcer des degrés d'associativité très hauts peut
+avoir des effets différenciés sur les caches suivants).
+
+Voilà donc notre méthode :
+
+On a bien tenu compte des recommendations de la consigne : l'effet du tampon
+d'écritures postées est bien masqué par notre batterie de 512 accès mémoire par
+séquence.
+
+#+begin_src c
+  #include "hwdetect.h"
+
+  #include <stdio.h>
+  #include <stdlib.h>
+  #include <sys/mman.h>
+
+  #ifndef PARAM
+  #define PARAM 1
+  #endif
+
+  #define CACHELINE_SIZE     64
+  #define CACHE_SIZE         (1ul << 15)
+  #define NB_EMPLACEMENTS    512
+  #define MEMORY_SIZE        (1ul << 20)
+  #define WARMUP             10000
+  #define PRECISION          1000000
+
+  static inline char *alloc(void)
+  {
+	  size_t i;
+	  char *ret = mmap(NULL, MEMORY_SIZE, PROT_READ | PROT_WRITE,
+			   MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
+	  if (ret == MAP_FAILED)
+		  abort();
+
+	  for (i = 0; i < MEMORY_SIZE; i += PAGE_SIZE)
+		  ret[i] = 0;
+
+	  return ret;
+  }
+
+  static inline uint64_t detect(char *mem)
+  {
+	  size_t i, j, p;
+	  uint64_t start, end;
+
+	  for (p = 0; p < WARMUP; p++) {
+
+		  for (i = 0; i < NB_EMPLACEMENTS / PARAM; i += 1) {
+			  for (j = 0 ; j < PARAM ; j += 1) {
+				  writemem(mem + (j * CACHE_SIZE) + (i * CACHELINE_SIZE));
+			  }
+		  }
+	  }
+
+	  start = now();
+
+	  for (p = 0; p < PRECISION; p++) {
+
+		  for (i = 0; i < NB_EMPLACEMENTS / PARAM; i += 1) {
+			  for (j = 0 ; j < PARAM ; j += 1) {
+				  writemem(mem + (j * CACHE_SIZE) + (i * CACHELINE_SIZE));
+			  }
+		  }
+	  }
+
+	  end = now();
+
+	  return end - start;
+  }
+
+  int main(void)
+  {
+	  char *mem = alloc();
+	  uint64_t t = detect(mem);
+
+	  printf("%d %lu\n", PARAM, t);
+	  return EXIT_SUCCESS;
+  }
+#+end_src
+
+On verra dans le répertoire pdf les courbes.
+
+On voit très bien le temps d'exécution qui explose après 8, ce qui correspond
+bien à notre matériel.
+
+* Exercice 4
+
+On veut détecter si notre machine dispose d'une technologie d'hyperthreading.
+
+Cette technologie a été développée à la suite de la reconnaissance de ce que les
+unités arithmétiques et logiques des processeurs étaient sous-utilisées, du fait
+de la longueur des pipelines, et la trop grande quantité de cycles de gel
+introduits.
+
+Puisque les ALU sont sous-utilisées, c'est-à-dire qu'il n'est pas possible de
+leur donner assez vite des instructions, la solution est de doubler le pipeline.
+
+On a maintenant deux pipelines qui partagent une unité arithmétique et
+logique. Quand un des deux pipelines est bloqué pendant un temps trop long,
+c'est l'autre qui vide ses instructions dans l'ALU.
+
+Quand un facteur est sous-utilisé, on augmente les autre facteurs.
+
+Chacun des deux pipelines est vu comme un coeur logique : c'est littéralement un
+truc qui suce des instructions, donc sur lequel on peut placer un programme.
+
+Donc sur notre machine, on a N coeurs logiques (une quantité paire) et N/2
+ALU. On veut donc savoir comment les coeurs logiques sont appariés.
+
+Une expérience cruciale se dessine : imaginons une application pour laquelle
+l'ALU est le facteur bloquant. Si on place deux instances de cette application
+sur deux coeurs logiques qui se partagent l'ALU, alors le traitement sera plus
+lent que si ils avaient chacun une ALU : ils sont en contention sur l'ALU.
+
+On propose donc, pour connaître le coeur logique apparié au coeur i, de placer
+une de ces applications sur le coeur i, d'en placer une autre sur un autre
+coeur, de mesurer le temps pris pour que les deux applications se terminent,
+puis de recommencer avec un autre coeur. Il devrait y avoir un coeur pour lequel
+ce temps est bien supérieur que tous les autres.
+
+C'est ce coeur qui est apparié
+
+Si on se soucie de la chaleur du cache, on peut commencer par trouver une
+application qui ne fait pas d'accès mémoire.
+
+Si on se soucie de la chaleur du cache d'instructions, on peut faire un tour de
+chauffe avant la mesure.
+
+On propose comme application la chose suivante :
+
+#+begin_src c
+  void *stress_alu(void *arg)
+  {
+	  int i, p;
+	  uint64_t start, end;
+
+	  /* Choix du coeur */
+	  setcore(2);
+
+	  /* Chauffe du cache */
+	  for (p = 0; p < 5; ++p)
+		  for (i = 0; i < 10000000 ; ++i)
+			  sqrt(i);
+
+	  /* Mesure */
+
+	  start = now();
+
+	  for (p = 0; p < 100; ++p)
+		  for (i = 0; i < 10000000 ; ++i)
+			  sqrt(i);
+
+
+	  end = now();
+
+	  printf("%ld\t", (end - start)/100);
+
+	  return NULL;
+  }
+
+#+end_src
+
+On ajoutera plus tard la boucle du main.
+

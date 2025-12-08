@@ -35,19 +35,19 @@ static inline uint64_t detect(char *mem)
 	size_t i, p;
 	uint64_t start, end;
 
-	for (p = 0; p < WARMUP; p++)
-		for (i = 0; i < MEMORY_SIZE; i += CACHELINE_SIZE)
+	// for (p = 0; p < WARMUP; p++)
+	// 	for (i = 0; i < MEMORY_SIZE; i += CACHELINE_SIZE)
 			writemem(mem + i);
 
 	start = now();
 
-	for (p = 0; p < PRECISION; p++)
+	// for (p = 0; p < PRECISION; p++)
 		for (i = 0; i < MEMORY_SIZE; i += CACHELINE_SIZE)
 			writemem(mem + i);
 
 	end = now();
 
-	return (end - start) / PRECISION;
+	return (end - start);
 }
 
 int main(void)
