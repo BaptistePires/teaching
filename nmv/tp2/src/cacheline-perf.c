@@ -1,4 +1,5 @@
 #include "hwdetect.h"
+#include "perf_events.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,7 +13,7 @@
 #define CACHELINE_SIZE     PARAM
 #define MEMORY_SIZE        (32 * PAGE_SIZE)
 #define WARMUP             10000
-#define PRECISION          1000000
+#define PRECISION          10000
 
 
 static inline char *alloc(size_t n)
@@ -30,31 +31,44 @@ static inline char *alloc(size_t n)
 	return ret;
 }
 
-static inline uint64_t detect(char *mem)
+
+
+static inline double detect(char *mem)
 {
 	size_t i, p;
-	uint64_t start, end;
-
+	long long l1d_misses = 0;
+	
 	for (p = 0; p < WARMUP; p++)
 		for (i = 0; i < MEMORY_SIZE; i += CACHELINE_SIZE)
 			writemem(mem + i);
 
-	start = now();
+
+	int fd_l1_miss = open_cache_event(PERF_COUNT_HW_CACHE_L1D,
+	PERF_COUNT_HW_CACHE_OP_READ,
+	PERF_COUNT_HW_CACHE_RESULT_MISS);
+
+	reset_perf_event(fd_l1_miss);
 
 	for (p = 0; p < PRECISION; p++)
 		for (i = 0; i < MEMORY_SIZE; i += CACHELINE_SIZE)
 			writemem(mem + i);
 
-	end = now();
 
-	return ((end - start) / PRECISION);
+	ioctl(fd_l1_miss, PERF_EVENT_IOC_DISABLE, 0);
+
+	read(fd_l1_miss, &l1d_misses, sizeof(long long));
+	close(fd_l1_miss);
+
+
+	double miss_rate = (double)l1d_misses / (PRECISION * ((double)MEMORY_SIZE / CACHELINE_SIZE));
+	return 1 - miss_rate;
 }
 
 int main(void)
 {
 	char *mem = alloc(MEMORY_SIZE);
-	uint64_t t = detect(mem);
+	double t = detect(mem);
 
-	printf("%d %lu\n", PARAM, t);
+	printf("%d %f\n", PARAM, 100 * t);
 	return EXIT_SUCCESS;
 }

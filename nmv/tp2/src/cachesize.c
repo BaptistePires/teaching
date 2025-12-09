@@ -8,9 +8,9 @@
 #  define PARAM            0
 #endif
 
-#define MEMORY_SIZE        (1ul << 21)
+#define MEMORY_SIZE        (1ul << 25)
 #define WARMUP             10000
-#define PRECISION          1000000
+#define PRECISION          1000
 
 #define CACHELINE_SIZE     64
 static inline char *alloc(void)
@@ -48,24 +48,26 @@ static inline char *alloc(void)
 // 	return (end - start) / PRECISION;
 // }
 
-static inline uint64_t detect(char *mem)
-{
+  static inline uint64_t detect(char *mem)
+  {
+	  size_t i, p;
+	  uint64_t start, end;
 
-	size_t i, p;
-	uint64_t start, end;
-	for (p = 0; p < WARMUP; p++)
-		for (i = 0; i < PARAM; i += CACHELINE_SIZE)
-			writemem(mem + i);
+	  setcore(0);
+	  for (p = 0; p < WARMUP; p++)
+		  for (i = 0; i < PARAM; i += CACHELINE_SIZE)
+			  writemem(mem + i);
 
-	start = now();
-	for (p = 0; p < PRECISION; p++)
-		for (i = 0; i < PARAM; i += CACHELINE_SIZE)
-			writemem(mem + i);
+	  start = now();
 
-	end = now();
+	  for (p = 0; p < PRECISION; p++)
+		  for (i = 0; i < PARAM; i += CACHELINE_SIZE)
+			  writemem(mem + i);
 
-	return (end - start) / PRECISION;
-}
+	  end = now();
+
+	  return ((end - start) / PARAM);
+  }
 
 int main(void)
 {
